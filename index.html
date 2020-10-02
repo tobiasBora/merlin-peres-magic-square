@@ -67,12 +67,19 @@
             <ol>
               <li v-for="potentialPlayer in potentialPlayers">
                 <display-player v-bind:player="potentialPlayer"></display-player>
+                <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
               </li>
             </ol>
           </div>
-          
-        </div>
-        <div v-if="currentStep == 'proposePlayers'">
+          <div>
+            Here is a list of users that want to play with you:
+            <ol>
+              <li v-for="playerInvite in listInvitations">
+                <display-player v-bind:player="playerInvite"></display-player>
+                <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>

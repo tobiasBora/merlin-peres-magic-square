@@ -12,12 +12,19 @@ var app = new Vue({
         // Usual steps:
         // connectToRoom
         // -> searchPlayers
-        // -> 
+        // -> invitationReceived
         currentStep: "connectToRoom",
         roomName: "roomQuantumMagicSquare",
         // List of 
         potentialPlayers: [ ],
         message: "No important message so far",
+        // Messages types
+        // ASK_PLAY
+        listInvitations: [ ],
+        // isPlayingWith is null if the player is not playing
+        // otherwise it corresponds to the user currently playing.
+        isPlayingWith: null,
+        
     },
     watch: {
         myFullName: function(oldName, newName) {
@@ -36,12 +43,20 @@ var app = new Vue({
                 data: true
             };
             this.connection.onopen = (event) => {
-                console.log("Hello friend");
-                this.connection.send('hello everyone');
+                // console.log("Hello friend");
+                // this.connection.send('hello everyone');
                 this.updateUsername();
             };
             this.connection.onmessage = (event) => {
-                console.log(event.userid + ' said: ' + event.data);
+                // console.log(event.userid + ' said: ' + event.data);
+                console.log("Received message: User " + event.userid + " type " + event.data.type);
+                if(event.data.dst == this.connection.userid) {
+                    console.log("The message is for me :)");
+                    if(event.data.type == "ASK_PLAY" && ! this.isPlaying) {
+                        console.log("Someone wants to play with me.");
+                        this.listInvitations.push(this.connection.peers[event.userid]);
+                    }
+                }
             };
             this.connection.openOrJoin(this.roomName, (isRoomCreated, roomid, error) => {
                 if(error)
@@ -100,6 +115,19 @@ var app = new Vue({
                 return this.connection.peers[participantId];
             });
             console.log("Number of players: " + this.potentialPlayers.length);
+        },
+        connectToPlayer: function (player) {
+            alert("Will play with" + player.userid);
+            this.connection.send(
+                {
+                    "type": "ASK_PLAY",
+                    "dst": player.userid,
+                },
+                player.userid);
+        },
+        acceptToPlay: function (playerInvite) {
+            console.log("I accepted to play");
+            this.isPlaying = true;
         }
     },
 })
