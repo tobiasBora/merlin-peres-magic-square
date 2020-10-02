@@ -10,10 +10,11 @@ var app = new Vue({
         connection: new RTCMultiConnection(),
         myFullName: Math.random().toString(36).substring(7),
         // Usual steps:
-        // searchPlayers
-        // -> proposePlayers
+        // connectToRoom
+        // -> searchPlayers
         // -> 
-        currentStep: "searchPlayers",
+        currentStep: "connectToRoom",
+        roomName: "roomQuantumMagicSquare",
         // List of 
         potentialPlayers: [ ],
         message: "No important message so far",
@@ -24,38 +25,57 @@ var app = new Vue({
         }
     },
     mounted: function() {
-        // this.connection = new RTCMultiConnection();
-        // this line is VERY_important
-        this.connection.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
-        // if you want text chat
-        this.connection.session = {
-            data: true
-        };
-        this.connection.onopen = (event) => {
-            console.log("Hello friend");
-            this.connection.send('hello everyone');
-            this.updateUsername();
-        };
-        this.connection.onmessage = (event) => {
-            console.log(event.userid + ' said: ' + event.data);
-        };
-        this.connection.openOrJoin('roomQuantumMagicSquare', (isRoomCreated, roomid, error) => {
-            if(error)
-                alert(error);
-            if ( isRoomCreated ) {
-                console.log("looks ok");
-                console.log("Here we go:" + this.myFullName);
-                this.updateUsername();
-                this.updatePotentialPlayers();
-            } else {
-                console.log("looks bad");
-            }
-        });
-        this.connection.onExtraDataUpdated = (event) => {
-            this.updatePotentialPlayers();
-        };
     },
     methods: {
+        connectToRoom: function () {
+            // this.connection = new RTCMultiConnection();
+            // this line is VERY_important
+            this.connection.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
+            // if you want text chat
+            this.connection.session = {
+                data: true
+            };
+            this.connection.onopen = (event) => {
+                console.log("Hello friend");
+                this.connection.send('hello everyone');
+                this.updateUsername();
+            };
+            this.connection.onmessage = (event) => {
+                console.log(event.userid + ' said: ' + event.data);
+            };
+            this.connection.openOrJoin(this.roomName, (isRoomCreated, roomid, error) => {
+                if(error)
+                    alert(error);
+                if ( isRoomCreated ) {
+                    this.currentStep = "searchPlayers"
+                    console.log("looks ok");
+                    console.log("Here we go:" + this.myFullName);
+                    this.updateUsername();
+                    this.updatePotentialPlayers();
+                } else {
+                    console.log("looks bad");
+                }
+            });
+            this.connection.onExtraDataUpdated = (event) => {
+                this.updatePotentialPlayers();
+            };
+            this.connection.onleave = (event) => {
+                this.updatePotentialPlayers();
+            };
+            this.connection.onPeerStateChanged = (state) => {
+                this.updatePotentialPlayers();
+            };
+            this.connection.onUserStatusChanged = (event) => {
+                this.updatePotentialPlayers();
+            };
+            this.connection.onReConnecting = (event) => {
+                this.updatePotentialPlayers();
+            };
+            // // If the initiator close the room, we can arrive in this funciton
+            this.connection.onEntireSessionClosed = (event) => {
+                alert('The initiator closed the room!', event.sessionid, event.extra);
+            };
+        },
         updateUsername: function () {
             console.log("I'll update username");
             console.log("Step" + this.currentStep);
@@ -79,6 +99,7 @@ var app = new Vue({
             this.potentialPlayers = this.connection.getAllParticipants().map( (participantId) => {
                 return this.connection.peers[participantId];
             });
+            console.log("Number of players: " + this.potentialPlayers.length);
         }
     },
 })

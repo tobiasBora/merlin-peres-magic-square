@@ -42,31 +42,38 @@
     <div id="app">
       <div>{{ message }}</div>
       <!-- ##### Change username ##### -->
-      <div>
-        Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
-        Change username: <input v-model.lazy="myFullName"> <br/>
-        Status:
-        <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
-        <span v-else>The room is not opened :-(</span>
+      <div v-if="currentStep == 'connectToRoom'">
+        You need to connect to a room. You can keep the default:
+        <input v-model="roomName">
+        <button v-on:click="connectToRoom">Connect to room</button>
       </div>
-      
-      <div v-if="currentStep == 'searchPlayers'">
-        Welcome!
-        <!-- Check if there are some available players -->
-        <div v-if="!potentialPlayers || !potentialPlayers.length">
-          We are currently trying to find players that want to
-          play with you, be patient, or ask you friends to connect ;)
-        </div>
-        <div v-else>
-          <ol>
-            <li v-for="potentialPlayer in potentialPlayers">
-              <display-player v-bind:player="potentialPlayer"></display-player>
-            </li>
-          </ol>
+      <div v-else>
+        <div>
+          Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
+          Change username: <input v-model.lazy="myFullName"> <br/>
+          Status:
+          <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
+          <span v-else>The room is not opened :-(</span>
         </div>
         
-      </div>
-      <div v-if="currentStep == 'proposePlayers'">
+        <div v-if="currentStep == 'searchPlayers'">
+          Welcome!
+          <!-- Check if there are some available players -->
+          <div v-if="!potentialPlayers || !potentialPlayers.length">
+            We are currently trying to find players that want to
+            play with you, be patient, or ask you friends to connect ;)
+          </div>
+          <div v-else>
+            <ol>
+              <li v-for="potentialPlayer in potentialPlayers">
+                <display-player v-bind:player="potentialPlayer"></display-player>
+              </li>
+            </ol>
+          </div>
+          
+        </div>
+        <div v-if="currentStep == 'proposePlayers'">
+        </div>
       </div>
     </div>
     <div id="app-2">
