@@ -41,53 +41,70 @@
     
     <div id="app">
       <div>{{ message }}</div>
-      <!-- ##### Change username ##### -->
-      <div v-if="currentStep == 'connectToRoom'">
-        You need to connect to a room. You can keep the default:
-        <input v-model="roomName">
-        <button v-on:click="connectToRoom">Connect to room</button>
-      </div>
-      <div v-else>
-        <div>
-          Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
-          Change username: <input v-model.lazy="myFullName"> <br/>
-          Status:
-          <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
-          <span v-else>The room is not opened :-(</span>
+      <div v-if="!isPlayingWith">
+        <!-- ##### Change username ##### -->
+        <div v-if="currentStep == 'connectToRoom'">
+          You need to connect to a room. You can keep the default:
+          <input v-model="roomName">
+          <button v-on:click="connectToRoom">Connect to room</button>
         </div>
-        
-        <div v-if="currentStep == 'searchPlayers'">
-          Welcome!
-          <!-- Check if there are some available players -->
-          <div v-if="!potentialPlayers || !potentialPlayers.length">
-            We are currently trying to find players that want to
-            play with you, be patient, or ask you friends to connect ;)
-          </div>
-          <div v-else>
-            <ol>
-              <li v-for="potentialPlayer in potentialPlayers">
-                <display-player v-bind:player="potentialPlayer"></display-player>
-                <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
-              </li>
-            </ol>
-          </div>
+        <div v-else>
           <div>
-            Here is a list of users that want to play with you:
-            <ol>
-              <li v-for="playerInvite in listInvitations">
-                <display-player v-bind:player="playerInvite"></display-player>
-                <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
-              </li>
-            </ol>
+            Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
+            Change username: <input v-model.lazy="myFullName"> <br/>
+            Status:
+            <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
+            <span v-else>The room is not opened :-(</span>
           </div>
+          
+          <div v-if="currentStep == 'searchPlayers'">
+            Welcome!
+            <!-- Check if there are some available players -->
+            <div v-if="!potentialPlayers || !potentialPlayers.length">
+              We are currently trying to find players that want to
+              play with you, be patient, or ask you friends to connect ;)
+            </div>
+            <div v-else>
+              <ol>
+                <li v-for="potentialPlayer in potentialPlayers">
+                  <display-player v-bind:player="potentialPlayer"></display-player>
+                  <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
+                </li>
+              </ol>
+            </div>
+            <div>
+              Here is a list of users that want to play with you:
+              <ol>
+                <li v-for="playerInvite in listInvitations">
+                  <display-player v-bind:player="playerInvite"></display-player>
+                  <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
+                </li>
+              </ol>
+            </div>
+          </div>                
         </div>
       </div>
-    </div>
-    <div id="app-2">
-      <span v-bind:title="message">
-        Hover your mouse over me for a few seconds
-        to see my dynamically bound title!
-      </span>
+      <!-- ########## Playing game ########## -->
+      <div v-if="isPlayingWith">
+        <div v-if="win_status == 0">
+          <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
+          Please {{role}}, fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ myChallenge }}:
+          <table class="table table-bordered">
+            <tr v-for="(e,i) in 3" :key="i">
+              <td is="td-game" v-for="(e,j) in 3" :key="j" :i="i" :j="j"></td>
+            </tr>
+          </table>
+          <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
+          <button v-on:click="submitMyAnswer">Submit</button>
+        </div>
+        <div>
+          <span v-if="win_status == 0">Waiting for all players to submit their answer.</span>
+          <span v-if="win_status == 1">Great, you win! :-D</span>
+          <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
+          <button v-on:click="restartGame">Restart game.</button>
+        </div>
+        <button v-on:click="stopPlaying">Stop Playing.</button>
+      </div>
     </div>
     <script src="gui_vuejs.js"></script>
   </body>
