@@ -23,9 +23,11 @@
          RTCMultiConnection (some very powerful platforms exists, but
          you need to pay). Here we will use RTCMultiConnection (possible
          to self host or use their own server for testing).
-      -->
+    -->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-    <script type="text/javascript" src="https://unpkg.com/quantum-circuit"></script>
+    <!-- This does not provide interactive measurements:
+         <script type="text/javascript" src="https://unpkg.com/quantum-circuit"></script> -->
+    <script src="http://davidbkemp.github.io/jsqubits/resources-1.0.0/js/jsqubits.js"></script>
     <script src="https://rtcmulticonnection.herokuapp.com/dist/RTCMultiConnection.min.js"></script>
     <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
 
@@ -35,7 +37,7 @@
     <!-- #######################################################################
          ############################## Templates ##############################
          #######################################################################
-      -->
+    -->
 
     
     
@@ -86,9 +88,9 @@
       </div>
       <!-- ########## Playing game ########## -->
       <div v-if="isPlayingWith">
-        <div v-if="win_status == 0">
+        <div v-if="win_status == 0 && !has_submitted">
           <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
-          Please {{role}}, fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ myChallenge }}:
+          Please {{role}}, fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
           <table class="table table-bordered">
             <tr v-for="(e,i) in 3" :key="i">
               <td is="td-game" v-for="(e,j) in 3" :key="j" :i="i" :j="j"></td>
@@ -96,6 +98,12 @@
           </table>
           <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
           <button v-on:click="submitMyAnswer">Submit</button>
+          <quantum-magic-square
+              :bus="bus"
+              :role="role"
+              :my_challenge="my_challenge"
+              :values_game.sync="values_game"
+          ></quantum-magic-square>
         </div>
         <div>
           <span v-if="win_status == 0">Waiting for all players to submit their answer.</span>
@@ -106,6 +114,48 @@
         <button v-on:click="stopPlaying">Stop Playing.</button>
       </div>
     </div>
+    <!-- ########## Templates ########## -->
+    <script type="text/x-template" id="quantum-magic-square">
+      <div>
+        Note that you are allowed, in order to maximize your change of winning, to use the following quantum device. Indeed, it appears that you share two bell pairs with the other player, and you can apply local measurements to your 2 qubits in order to win. You can either manually specify the measurement, or directly click on the square below (you are then advised to put the measurement outcome as your result in the corresponding case of the magic square).
+        <div>
+          Manual measurement:
+          <select v-model="sign_observable">
+            <option>+</option>
+            <option>-</option>
+          </select>
+          <select v-model="observable_first_qubit">
+            <option v-for="obs in possible_observables" v-bind:value="obs">
+              {{ obs }}
+            </option>
+          </select>
+          <select v-model="observable_second_qubit">
+            <option v-for="obs in possible_observables" v-bind:value="obs">
+              {{ obs }}
+            </option>
+          </select>
+          <button @click="measure_observable">
+            Measure the observable {{ sign_observable }}{{ observable_first_qubit }}{{ observable_second_qubit }}
+          </button>
+          Last outcome: {{ last_outcome }}
+          <div v-if="last_outcome !== null">You asked previously to measure the observable {{ last_sign_observable }}{{ last_observable_first_qubit }}{{ last_observable_second_qubit }}. The output of this measurement is {{ last_outcome }}.</div>
+          <div>
+            You can click on this table to pre-select the observable you want to measure depending on the rows/columns you are asked to measure (NB: you still need to click on "Measure the observable"):
+          </div>
+          <table>
+            <tr v-for="(e,i) in 3">
+              <td v-for="(f,j) in 3">
+                <button @click="select_observable_in_square(i,j)"> {{ recommended_measurements[i][j] }} </button>
+              </td>
+            </tr>
+          </table>
+          <button @click="apply_automatically_quantum_procedure">
+            Automatically apply the quantum strategy (/!\ Only when you are tired of manually doing it!)
+          </button>
+        </div>
+      </div>
+    </script>
+
     <script src="gui_vuejs.js"></script>
   </body>
 </html>
