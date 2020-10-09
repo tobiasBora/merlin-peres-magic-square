@@ -90,12 +90,15 @@
       <div v-if="isPlayingWith">
         <div v-if="win_status == 0 && !has_submitted">
           <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
-          Please {{role}}, fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
-          <table class="table table-bordered">
-            <tr v-for="(e,i) in 3" :key="i">
-              <td is="td-game" v-for="(e,j) in 3" :key="j" :i="i" :j="j"></td>
-            </tr>
-          </table>
+          Welcome in the game {{ connection.extra.fullName }}, you will play against {{ isPlayingWith.extra.fullName }}. You will play as {{role}}, so please fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
+        </div>
+        <div>Here is the board you submitted:</div>
+        <display-magic-board :role="role"
+                             :challenge="my_challenge"
+                             :values_game.sync="values_game"
+                             :editable="!has_submitted">
+        </display-magic-board>
+        <div v-if="win_status == 0 && !has_submitted">
           <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
           <button v-on:click="submitMyAnswer">Submit</button>
           <quantum-magic-square
@@ -105,14 +108,24 @@
               :values_game.sync="values_game"
           ></quantum-magic-square>
         </div>
-        <div>
-          <span v-if="win_status == 0">Waiting for all players to submit their answer.</span>
-          <span v-if="win_status == 1">Great, you win! :-D</span>
-          <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
-          <button v-on:click="restartGame">Restart game.</button>
+        <div v-if="has_submitted">
+          <span v-if="win_status == 0">Waiting for all players to submit their answer...</span>
+          <div v-else>
+            <span v-if="win_status == 1">Great, you win! :-D</span>
+            <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
+            Here is the board that the other player submitted:
+            <display-magic-board
+                :role="other_player_role"
+                :challenge="other_player_challenge"
+                :values_game="other_player_values_game"
+                :editable="false">
+            </display-magic-board>
+            <button v-on:click="restartGame">Restart game.</button>
+          </div>
         </div>
         <button v-on:click="stopPlaying">Stop Playing.</button>
       </div>
+    </div>
     </div>
     <!-- ########## Templates ########## -->
     <script type="text/x-template" id="quantum-magic-square">

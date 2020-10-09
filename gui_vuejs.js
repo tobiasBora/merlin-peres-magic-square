@@ -15,28 +15,36 @@ Vue.component('display-player', {
 })
 
 Vue.component('td-game', {
-    props: ['i', 'j'],
-    template: '<td><button v-if="shouldDisplay" v-on:click="toogle"> {{ indexToDisplay }} = {{ valueToDisplay }} </button><span v-else>?</span></td>',
+    props: ['i', 'j', 'role', 'challenge', 'values_game', 'editable'],
+    template: `
+      <td>
+        <span v-if="shouldDisplay">
+          <button v-if="editable" v-on:click="toogle">
+            {{ valueToDisplay }}
+          </button>
+          <span v-else>
+            {{ valueToDisplay }}
+          </span>
+        </span>
+        <span v-else>?</span>
+      </td>`,
     methods:{
         toogle: function() {
             var i = this.indexToDisplay;
-            /* See maybe proper solutions here, like dependency injections... 
-               https://vuejs.org/v2/guide/components-edge-cases.html
-             */
-            this.$set(this.$parent.values_game, i, - this.$parent.values_game[i]);
+            this.$emit("negate:values_game", i);
         },
     },
     computed: {
         // Answer if a button should be displayed in row i column j
         shouldDisplay: function () {
-            if (this.$parent.role == "Alice") {
-                if (this.i == this.$parent.my_challenge) {
+            if (this.role == "Alice") {
+                if (this.i == this.challenge) {
                     return true
                 } else {
                     return false
                 }
             } else {
-                if (this.j == this.$parent.my_challenge) {
+                if (this.j == this.challenge) {
                     return true
                 } else {
                     return false
@@ -48,7 +56,7 @@ Vue.component('td-game', {
             if(!this.shouldDisplay) {
                 return 0
             } else {
-                if(this.$parent.role == 'Alice') {
+                if(this.role == 'Alice') {
                     return this.j
                 } else {
                     return this.i
@@ -59,8 +67,39 @@ Vue.component('td-game', {
             if(!this.shouldDisplay) {
                 return 0
             } else {
-                return this.$parent.values_game[this.indexToDisplay];
+                return this.values_game[this.indexToDisplay];
             }
+        }
+    }
+})
+
+Vue.component('display-magic-board', {
+    props: {
+        // We can define types and much more: https://fr.vuejs.org/v2/guide/components-props.html
+        'role': String,
+        'challenge': Number,
+        'values_game': Array,
+        'editable': Boolean,
+    },
+    template: `
+      <table class="table table-bordered">
+        <tr v-for="(e,i) in 3" :key="i">
+          <td is="td-game" v-for="(e,j) in 3"
+            :key="j"
+            :i="i"
+            :j="j"
+            :role="role"
+            :challenge="challenge"
+            :values_game="values_game"
+            :editable="editable"
+            v-on:negate:values_game="negate_values_game"></td>
+        </tr>
+      </table>
+    `,
+    methods: {
+        negate_values_game: function(i) {
+            this.$set(this.values_game, i, -this.values_game[i]);
+            this.$emit("update:values_game", this.values_game);
         }
     }
 })
@@ -469,6 +508,10 @@ var app = new Vue({
                         var a = event.data.answers_bob;
                         console.log("Bob gave me his answer:" + a);
                         this.magicGame.setAnswerBob(a[0],a[1],a[2]);
+                        // to display the board of Bob:
+                        this.other_player_challenge = this.magicGame.getChallengeBob();
+                        this.other_player_role = 'Bob';
+                        this.other_player_values_game = a;
                         this.checkIfWin();
                     }
                     if(event.data.type == "WIN_STATUS"
@@ -476,6 +519,10 @@ var app = new Vue({
                        && this.isPlayingWith.userid == event.userid
                        && this.role == "Bob") {
                         console.log("Alice gave me the win status!");
+                        // to display the board of Alice:
+                        this.other_player_challenge = event.data.challenge;
+                        this.other_player_role = 'Alice';
+                        this.other_player_values_game = event.data.values_game;
                         this.win_status = event.data.win_status;
                     }
                     if(event.data.type == "ALICE_WANTS_RESTART"
@@ -624,6 +671,8 @@ var app = new Vue({
                         "type": "WIN_STATUS",
                         "dst": this.isPlayingWith.userid,
                         "win_status": this.win_status,
+                        "challenge": this.my_challenge,
+                        "values_game": this.values_game,
                     }, this.isPlayingWith.userid);
             }
         },
