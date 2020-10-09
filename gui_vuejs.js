@@ -152,10 +152,8 @@ Vue.component('quantum-magic-square', {
             observable_first_qubit: "I",
             observable_second_qubit: "I",
             // The observable that the user wanted to measure
-            last_sign_observable: "+",
-            last_observable_first_qubit: "I",
-            last_observable_second_qubit: "I",
-            last_outcome: null,
+            // List of the form {sign_observable, observable_first_qubit, observable_second_qubit, outcome}
+            history_of_measurements: [],
             // A fix table to get the recommended measurements
             recommended_measurements: [
                 ["+IZ", "+ZI", "+ZZ"],
@@ -192,10 +190,12 @@ Vue.component('quantum-magic-square', {
                 var data = evt_conn.event.data;
                 if (data.type == "QUANTUM_MEASURE_OBS_RESULT") {
                     console.log("and guess what, it's a measurement result!", data);
-                    this.last_outcome = data.outcome;
-                    this.last_sign_observable = data.obs[0];                  
-                    this.last_observable_first_qubit  = data.obs[1];                  
-                    this.last_observable_second_qubit = data.obs[2];
+                    this.history_of_measurements.push({
+                        sign_observable: data.obs[0],
+                        observable_first_qubit: data.obs[1],
+                        observable_second_qubit: data.obs[2],
+                        outcome: data.outcome,
+                    });
                     this.automatically_copy_in_square();
                 }
             });
@@ -205,15 +205,16 @@ Vue.component('quantum-magic-square', {
     methods: {
         measure_observable: function() {
             console.log("Let's measure the observable!");
-            this.last_outcome = null;
             var obs = this.sign_observable + this.observable_first_qubit + this.observable_second_qubit;
             if(this.role == 'Alice') {
                 var result = this.quantum_computer.aliceMeasureObservable(obs);
                 console.log("I measured:" + result);
-                this.last_outcome = result;
-                this.last_sign_observable = this.sign_observable;
-                this.last_observable_first_qubit = this.observable_first_qubit;
-                this.last_observable_second_qubit = this.observable_second_qubit;
+                this.history_of_measurements.push({
+                    sign_observable: this.sign_observable,
+                    observable_first_qubit: this.observable_first_qubit,
+                    observable_second_qubit: this.observable_second_qubit,
+                    outcome: result,
+                });
                 this.automatically_copy_in_square();
             } else {
                 this.bus.$emit("send-message-to-player", {
@@ -257,8 +258,9 @@ Vue.component('quantum-magic-square', {
         automatically_copy_in_square: function () {
             if(this.automatic_mode || this.semi_automatic_mode > 0) {
                 console.log("I'm in automatic mode!");
-                var obs = this.last_sign_observable + this.last_observable_first_qubit + this.last_observable_second_qubit;
-                console.log("Observable is " + obs + " and outcome is " + this.last_outcome);
+                var last_measurement = this.history_of_measurements.slice(-1)[0]
+                var obs = last_measurement.sign_observable + last_measurement.observable_first_qubit + last_measurement.observable_second_qubit;
+                console.log("Observable is " + obs + " and outcome is " + last_measurement.outcome);
                 var coord = this.find_coord_from_obs(obs);
                 if (coord !== null) {
                     if ((this.role == 'Alice' && coord[0] != this.my_challenge)
@@ -268,7 +270,7 @@ Vue.component('quantum-magic-square', {
                     }
                     this.$set(this.values_game,
                               (this.role == 'Alice') ? coord[1] : coord[0],
-                              parseInt(this.last_outcome));
+                              parseInt(last_measurement.outcome));
                     this.semi_automatic_mode--;
                     console.log("this.values_game: " + this.values_game);
                     this.$emit("update:values_game", this.values_game);

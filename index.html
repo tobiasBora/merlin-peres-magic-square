@@ -137,8 +137,14 @@
           <button @click="measure_observable">
             Measure the observable {{ sign_observable }}{{ observable_first_qubit }}{{ observable_second_qubit }}
           </button>
-          Last outcome: {{ last_outcome }}
-          <div v-if="last_outcome !== null">You asked previously to measure the observable {{ last_sign_observable }}{{ last_observable_first_qubit }}{{ last_observable_second_qubit }}. The output of this measurement is {{ last_outcome }}.</div>
+          <div>
+            List of previous measurements:
+            <ul>
+              <li v-for="measurement in history_of_measurements">
+                You made a measurement {{ measurement.sign_observable }}{{ measurement.observable_first_qubit }}{{ measurement.observable_second_qubit }} and you got the outcome {{ measurement.outcome }}
+              </li>
+            </ul>
+          </div>
           <div>
             You can click on this table to pre-select the observable you want to measure depending on the rows/columns you are asked to measure (NB: you still need to click on "Measure the observable"):
           </div>
