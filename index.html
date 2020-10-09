@@ -1,133 +1,113 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <title>
       Merlin-Peres Magic Square 
     </title>
-    <meta charset="UTF-8">
-    <!-- To connect people in a peer2peer way, the easiest is to use
-         WebRTC. The main problem is to find a way to discover people
-         the first time (so called signalling). Then, there is some
-         STUN servers that tries to break the firewalls in order to
-         let people connect (google offers for free some of these STUN
-         servers), and we can eventually use a TURN server for if some
-         proxies do no allow p2p connection (the TURN server will then
-         be in between the participants).  For signaling, we can use
-         several methods: either send some ICE (check that ICE is
-         indeed that) "credentials" (that explains how it's possible
-         to reach you, via your ip...) to someone via mail for example
-         (not very practical), or you can use services (free if
-         possible) that record this ICE for you. There exists PeerJs
-         that provides such a free service (+ library), or if you want
-         to be able to create a whole chat room, there is
-         RTCMultiConnection (some very powerful platforms exists, but
-         you need to pay). Here we will use RTCMultiConnection (possible
-         to self host or use their own server for testing).
-    -->
-    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-    <!-- This does not provide interactive measurements:
-         <script type="text/javascript" src="https://unpkg.com/quantum-circuit"></script> -->
-    <script src="http://davidbkemp.github.io/jsqubits/resources-1.0.0/js/jsqubits.js"></script>
-    <script src="https://rtcmulticonnection.herokuapp.com/dist/RTCMultiConnection.min.js"></script>
-    <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="magic_square.css">
   </head>
   <body>
-
+    
+    <div id="app">
+      <div v-if="loading">Loading...</div>
+      <div v-cloak>
+        <div>{{ message }}</div>
+        <div v-if="!isPlayingWith">
+          <!-- ##### Change username ##### -->
+          <div v-if="currentStep == 'connectToRoom'">
+            You need to connect to a room. You can keep the default:
+            <input v-model="roomName">
+            <button v-on:click="connectToRoom" style="color: red;">Connect to room</button>
+          </div>
+          <div v-else>
+            <div>
+              Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
+              Change username: <input v-model.lazy="myFullName"> <br/>
+              Status:
+              <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
+              <span v-else>The room is not opened :-(</span>
+            </div>
+            
+            <div v-if="currentStep == 'searchPlayers'">
+              Welcome!
+              <!-- Check if there are some available players -->
+              <div v-if="!potentialPlayers || !potentialPlayers.length">
+                We are currently trying to find players that want to
+                play with you, be patient, or ask you friends to connect ;)
+              </div>
+              <div v-else>
+                <ol>
+                  <li v-for="potentialPlayer in potentialPlayers">
+                    <display-player v-bind:player="potentialPlayer"></display-player>
+                    <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
+                  </li>
+                </ol>
+              </div>
+              <div>
+                Here is a list of users that want to play with you:
+                <ol>
+                  <li v-for="playerInvite in listInvitations">
+                    <display-player v-bind:player="playerInvite"></display-player>
+                    <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
+                  </li>
+                </ol>
+              </div>
+            </div>                
+          </div>
+        </div>
+        <!-- ########## Playing game ########## -->
+        <div v-if="isPlayingWith">
+          <div v-if="win_status == 0 && !has_submitted">
+            <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
+            Welcome in the game {{ connection.extra.fullName }}, you will play against {{ isPlayingWith.extra.fullName }}. You will play as {{role}}, so please fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
+          </div>
+          <div v-else>Here is the board you submitted:</div>
+          <display-magic-board :role="role"
+                               :challenge="my_challenge"
+                               :values_game.sync="values_game"
+                               :editable="!has_submitted">
+          </display-magic-board>
+          <div v-if="win_status == 0 && !has_submitted">
+            <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
+            <button v-on:click="submitMyAnswer">Submit</button>
+            <quantum-magic-square
+                :bus="bus"
+                :role="role"
+                :my_challenge="my_challenge"
+                :values_game.sync="values_game"
+            ></quantum-magic-square>
+          </div>
+          <div v-if="has_submitted">
+            <span v-if="win_status == 0">Waiting for all players to submit their answer...</span>
+            <div v-else>
+              <span v-if="win_status == 1">Great, you win! :-D</span>
+              <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
+              Here is the board that the other player submitted:
+              <display-magic-board
+                  :role="other_player_role"
+                  :challenge="other_player_challenge"
+                  :values_game="other_player_values_game"
+                  :editable="false">
+              </display-magic-board>
+              <button v-on:click="restartGame">Restart game.</button>
+            </div>
+          </div>
+          <button v-on:click="stopPlaying">Stop Playing.</button>
+        </div>
+      </div>
+    </div>
+    
     <!-- #######################################################################
          ############################## Templates ##############################
          #######################################################################
     -->
+    <!-- I keep the small templates in gui_vuejs.js, and put the longer templates here -->
 
-    
-    
-    <div id="app">
-      <div>{{ message }}</div>
-      <div v-if="!isPlayingWith">
-        <!-- ##### Change username ##### -->
-        <div v-if="currentStep == 'connectToRoom'">
-          You need to connect to a room. You can keep the default:
-          <input v-model="roomName">
-          <button v-on:click="connectToRoom">Connect to room</button>
-        </div>
-        <div v-else>
-          <div>
-            Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
-            Change username: <input v-model.lazy="myFullName"> <br/>
-            Status:
-            <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
-            <span v-else>The room is not opened :-(</span>
-          </div>
-          
-          <div v-if="currentStep == 'searchPlayers'">
-            Welcome!
-            <!-- Check if there are some available players -->
-            <div v-if="!potentialPlayers || !potentialPlayers.length">
-              We are currently trying to find players that want to
-              play with you, be patient, or ask you friends to connect ;)
-            </div>
-            <div v-else>
-              <ol>
-                <li v-for="potentialPlayer in potentialPlayers">
-                  <display-player v-bind:player="potentialPlayer"></display-player>
-                  <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
-                </li>
-              </ol>
-            </div>
-            <div>
-              Here is a list of users that want to play with you:
-              <ol>
-                <li v-for="playerInvite in listInvitations">
-                  <display-player v-bind:player="playerInvite"></display-player>
-                  <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
-                </li>
-              </ol>
-            </div>
-          </div>                
-        </div>
-      </div>
-      <!-- ########## Playing game ########## -->
-      <div v-if="isPlayingWith">
-        <div v-if="win_status == 0 && !has_submitted">
-          <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
-          Welcome in the game {{ connection.extra.fullName }}, you will play against {{ isPlayingWith.extra.fullName }}. You will play as {{role}}, so please fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
-        </div>
-        <div>Here is the board you submitted:</div>
-        <display-magic-board :role="role"
-                             :challenge="my_challenge"
-                             :values_game.sync="values_game"
-                             :editable="!has_submitted">
-        </display-magic-board>
-        <div v-if="win_status == 0 && !has_submitted">
-          <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
-          <button v-on:click="submitMyAnswer">Submit</button>
-          <quantum-magic-square
-              :bus="bus"
-              :role="role"
-              :my_challenge="my_challenge"
-              :values_game.sync="values_game"
-          ></quantum-magic-square>
-        </div>
-        <div v-if="has_submitted">
-          <span v-if="win_status == 0">Waiting for all players to submit their answer...</span>
-          <div v-else>
-            <span v-if="win_status == 1">Great, you win! :-D</span>
-            <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
-            Here is the board that the other player submitted:
-            <display-magic-board
-                :role="other_player_role"
-                :challenge="other_player_challenge"
-                :values_game="other_player_values_game"
-                :editable="false">
-            </display-magic-board>
-            <button v-on:click="restartGame">Restart game.</button>
-          </div>
-        </div>
-        <button v-on:click="stopPlaying">Stop Playing.</button>
-      </div>
-    </div>
-    </div>
-    <!-- ########## Templates ########## -->
     <script type="text/x-template" id="quantum-magic-square">
       <div>
         Note that you are allowed, in order to maximize your change of winning, to use the following quantum device. Indeed, it appears that you share two bell pairs with the other player, and you can apply local measurements to your 2 qubits in order to win. You can either manually specify the measurement, or directly click on the square below (you are then advised to put the measurement outcome as your result in the corresponding case of the magic square).
@@ -175,6 +155,39 @@
       </div>
     </script>
 
+    <!-- #######################################################################
+         ############################ Load scripts #############################
+         #######################################################################
+    -->
+    
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- This does not provide interactive measurements:
+         <script type="text/javascript" src="https://unpkg.com/quantum-circuit"></script> -->
+    <script src="http://davidbkemp.github.io/jsqubits/resources-1.0.0/js/jsqubits.js"></script>
+    <!-- To connect people in a peer2peer way, the easiest is to use
+         WebRTC. The main problem is to find a way to discover people
+         the first time (so called signalling). Then, there is some
+         STUN servers that tries to break the firewalls in order to
+         let people connect (google offers for free some of these STUN
+         servers), and we can eventually use a TURN server for if some
+         proxies do no allow p2p connection (the TURN server will then
+         be in between the participants).  For signaling, we can use
+         several methods: either send some ICE (check that ICE is
+         indeed that) "credentials" (that explains how it's possible
+         to reach you, via your ip...) to someone via mail for example
+         (not very practical), or you can use services (free if
+         possible) that record this ICE for you. There exists PeerJs
+         that provides such a free service (+ library), or if you want
+         to be able to create a whole chat room, there is
+         RTCMultiConnection (some very powerful platforms exists, but
+         you need to pay). Here we will use RTCMultiConnection (possible
+         to self host or use their own server for testing).
+    -->
+    <script src="https://rtcmulticonnection.herokuapp.com/dist/RTCMultiConnection.min.js"></script>
+    <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="gui_vuejs.js"></script>
   </body>
 </html>

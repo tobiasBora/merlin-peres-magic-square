@@ -8,6 +8,10 @@
 // Templates, could also use https://vuejs.org/v2/guide/components-edge-cases.html#X-Templates
 // Beware of https://vuejs.org/v2/guide/components.html#DOM-Template-Parsing-Caveats
 
+Vue.component('my-button', {
+    template: '<button><slot></slot></button>'
+})
+
 // Use <display
 Vue.component('display-player', {
     props: ['player'],
@@ -82,7 +86,7 @@ Vue.component('display-magic-board', {
         'editable': Boolean,
     },
     template: `
-      <table class="table table-bordered">
+      <table class="table table-bordered w-auto table-responsive">
         <tr v-for="(e,i) in 3" :key="i">
           <td is="td-game" v-for="(e,j) in 3"
             :key="j"
@@ -401,6 +405,7 @@ class MagicGame {
 var app = new Vue({
     el: '#app',
     data: {
+        loading: true,
         connection: new RTCMultiConnection(),
         myFullName: Math.random().toString(36).substring(7),
         // Usual steps:
@@ -448,6 +453,9 @@ var app = new Vue({
     },
     // See also mounted, that will run later when mounted in the DOM
     created: function() {
+    },
+    mounted: function() {
+        this.loading = false;
     },
     computed: {
         followRules: function () {

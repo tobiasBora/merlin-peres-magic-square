@@ -1,0 +1,4 @@
+/* https://stackoverflow.com/questions/42262007/hiding-vue-js-template-before-it-is-rendered/42262375 */
+[v-cloak] {
+    display: none;
+}
