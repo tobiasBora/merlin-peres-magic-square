@@ -170,20 +170,10 @@ Vue.component('quantum-magic-square', {
     },
     
     created: function() {
+        console.log("The quantum computer component is being created right now!");
         if(this.role == 'Alice') {
             this.quantum_computer = new QuantumComputerMagicSquare();
-            this.bus.$on("message-received-from-player", (evt_conn) => {
-                console.log("Bob wants to measure an observable!");
-                var data = evt_conn.event.data;
-                if (data.type == "QUANTUM_MEASURE_OBS") {
-                    var outcome = this.quantum_computer.bobMeasureObservable(data.obs);
-                    this.bus.$emit("send-message-to-player", {
-                        "type": "QUANTUM_MEASURE_OBS_RESULT",
-                        "obs": data.obs,
-                        "outcome": outcome,
-                    });
-                }
-            });
+            this.bus.$on("message-received-from-player", this.callback_message_received_from_player);
         } else { // I'm Bob
             this.bus.$on("message-received-from-player", (evt_conn) => {
                 console.log("I'm Bob and I received a message from my player :D", evt_conn);
@@ -200,6 +190,11 @@ Vue.component('quantum-magic-square', {
                 }
             });
         }
+    },
+
+    beforeDestroy: function() {
+        // Remove the callback to avoid very strange bugs with multiple reply instead of one...
+        this.bus.$off("message-received-from-player", this.callback_message_received_from_player);
     },
     
     methods: {
@@ -231,6 +226,19 @@ Vue.component('quantum-magic-square', {
             this.sign_observable = meas[0];
             this.observable_first_qubit = meas[1];
             this.observable_second_qubit = meas[2];
+        },
+        callback_message_received_from_player: function (evt_conn) {
+            var data = evt_conn.event.data;
+            console.log("I just received a message", data);
+            if (data.type == "QUANTUM_MEASURE_OBS") {
+                console.log("Bob wants to measure an observable!");
+                var outcome = this.quantum_computer.bobMeasureObservable(data.obs);
+                this.bus.$emit("send-message-to-player", {
+                    "type": "QUANTUM_MEASURE_OBS_RESULT",
+                    "obs": data.obs,
+                    "outcome": outcome,
+                });
+            }
         },
         apply_automatically_quantum_procedure: function () {
             this.semi_automatic_mode = 3;
