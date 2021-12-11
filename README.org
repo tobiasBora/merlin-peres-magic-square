@@ -7,9 +7,12 @@ Here is a small project I started to:
 - learn how to use the VueJs framework
 - learn how to do "server-less" interaction between multiple clients (we just use a signalling server from socket.io, and then clients connect in peer-to-peer). To that end, I use the [[https://github.com/muaz-khan/RTCMultiConnection][RTCMultiConnection]] library.
 
-WARNING: the game is still in beta and has not yet been tested a lot. Notably, sometimes clicking on "apply the quantum strategy" does not do anything and I'm not sure why (and I've no time to debug it right now). Also, I think to remember that rarely the quantum strategy is failing, but it may actually be related to the first issue (or maybe I did a stupid mistake in the math, either I forgot a minus or I forgot to apply a transpose). 
+WARNING: the game is still in beta and has not yet been tested a lot. Notably, sometimes clicking on "apply the quantum strategy" does not do anything and I'm not sure why (and I've no time to debug it right now). Also, I think to remember that rarely the quantum strategy is failing, but it may actually be related to the first issue (or maybe I did a stupid mistake in the math, either I forgot a minus or I forgot to apply a transpose).
+
+There is also quite some work to do on the design (I was also learning how to use quasar).
 
 ** Usage
 
-Download this project and open ~index.html~ on your browser at least two times, one per player and that's all. The players can be on different computers/networks. There is maybe an issue with local networks and MacOs that tries to be a bit too drastic in term of security, but this must be confirmed).
-    
+The demo is [[https://tobiasbora.github.io/merlin-peres-magic-square/][here]]. Open it at least two times, one per player. The players can be on different computers/networks. There is maybe an issue with local networks and MacOs that tries to be a bit too drastic in term of security, but this must be confirmed).
+
+Otherwise, you can download this project and open ~index.html~ on your browser at least two times, one per player and that's all.     
