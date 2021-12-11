@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>
@@ -7,99 +7,119 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <!-- https://quasar.dev/start/umd -->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900|Material+Icons|Material+Icons+Outlined|Material+Icons+Round" rel="stylesheet" type="text/css">
+    <link href="https://themify.me/wp-content/themes/themify-v32/themify-icons/themify-icons.css" rel="stylesheet" type="text/css">
+    <link href="https://cdn.jsdelivr.net/npm/quasar@1.14.1/dist/quasar.min.css" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="magic_square.css">
   </head>
   <body>
     
     <div id="app">
-      <div v-if="loading">Loading...</div>
-      <div v-cloak>
-        <div>{{ message }}</div>
-        <div v-if="!isPlayingWith">
-          <!-- ##### Change username ##### -->
-          <div v-if="currentStep == 'connectToRoom'">
-            You need to connect to a room. You can keep the default:
-            <input v-model="roomName">
-            <button v-on:click="connectToRoom" style="color: red;">Connect to room</button>
-          </div>
-          <div v-else>
-            <div>
-              Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
-              Change username: <input v-model.lazy="myFullName"> <br/>
-              Status:
-              <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span>
-              <span v-else>The room is not opened :-(</span>
-            </div>
-            
-            <div v-if="currentStep == 'searchPlayers'">
-              Welcome!
-              <!-- Check if there are some available players -->
-              <div v-if="!potentialPlayers || !potentialPlayers.length">
-                We are currently trying to find players that want to
-                play with you, be patient, or ask you friends to connect ;)
+      <q-layout view="hHh lpR fFf" class="q-pa-lg q-ma-lg">
+
+        <q-header elevated class="bg-primary text-white">
+          <q-toolbar>
+            <q-toolbar-title class="text-center text-h2 q-ma-md q-pa-md">
+              <q-avatar>
+                <img src="https://cdn.quasar.dev/logo/svg/quasar-logo.svg">
+              </q-avatar>
+              (Quantum) Magic Square
+            </q-toolbar-title>
+          </q-toolbar>
+        </q-header>
+
+        <q-page-container class="q-ma-lg text-center">
+          <div v-if="loading">Loading...</div>
+          <div v-cloak>
+            <div>{{ message }}</div>
+            <div v-if="!isPlayingWith">
+              <!-- ##### Change username ##### -->
+              <div v-if="currentStep == 'connectToRoom'">
+                <p>
+                  You need to connect to a room. You can keep the default:
+                  <q-input outlined class="q-" v-model="roomName" />
+                  <q-btn color="primary" v-on:click="connectToRoom">Connect to room</q-btn>
+                </p>
               </div>
               <div v-else>
-                <ol>
-                  <li v-for="potentialPlayer in potentialPlayers">
-                    <display-player v-bind:player="potentialPlayer"></display-player>
-                    <button v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</button>
-                  </li>
-                </ol>
+                <div>
+                  Your username: <span v-if="connection && connection.extra && connection.extra.fullName">{{ connection.extra.fullName }}</span><span v-else>Connection not yet done, you don't have yet a userName...</span> <br/>
+                  Change username: <input v-model.lazy="myFullName"> <br/>
+                  <!-- Status: -->
+                  <!-- <span v-if="connection && connection.isRoomOpened"> The room is opened :-D</span> -->
+                  <!-- <span v-else>The room is not opened :-(</span> -->
+                </div>
+                
+                <div v-if="currentStep == 'searchPlayers'">
+                  Welcome!
+                  <!-- Check if there are some available players -->
+                  <div v-if="!potentialPlayers || !potentialPlayers.length">
+                    We are currently trying to find players that want to
+                    play with you, be patient, or ask you friends to connect ;)
+                  </div>
+                  <div v-else>
+                    <ol>
+                      <li v-for="potentialPlayer in potentialPlayers">
+                        <display-player v-bind:player="potentialPlayer"></display-player>
+                        <q-btn color="primary" v-on:click="function(){connectToPlayer(potentialPlayer)}">Invite to play!</q-btn>
+                      </li>
+                    </ol>
+                  </div>
+                  <div>
+                    Here is a list of users that want to play with you:
+                    <ol>
+                      <li v-for="playerInvite in listInvitations">
+                        <display-player v-bind:player="playerInvite"></display-player>
+                        <q-btn color="primary" v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</q-btn>
+                      </li>
+                    </ol>
+                  </div>
+                </div>                
               </div>
-              <div>
-                Here is a list of users that want to play with you:
-                <ol>
-                  <li v-for="playerInvite in listInvitations">
-                    <display-player v-bind:player="playerInvite"></display-player>
-                    <button v-on:click="function(){acceptToPlay(playerInvite)}">Accept to play!</button>
-                  </li>
-                </ol>
+            </div>
+            <!-- ########## Playing game ########## -->
+            <div v-if="isPlayingWith">
+              <div v-if="win_status == 0 && !has_submitted">
+                <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
+                Welcome in the game {{ connection.extra.fullName }}, you will play against {{ isPlayingWith.extra.fullName }}. You will play as {{role}}, so please fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
               </div>
-            </div>                
-          </div>
-        </div>
-        <!-- ########## Playing game ########## -->
-        <div v-if="isPlayingWith">
-          <div v-if="win_status == 0 && !has_submitted">
-            <!-- You are playing with {{ isPlayingWith.extra.fullName }}, and your role is {{ role }}. -->
-            Welcome in the game {{ connection.extra.fullName }}, you will play against {{ isPlayingWith.extra.fullName }}. You will play as {{role}}, so please fill the <span v-if="role == 'Alice'">row</span><span v-else>column</span> {{ my_challenge }}:
-          </div>
-          <div v-else>Here is the board you submitted:</div>
-          <display-magic-board :role="role"
-                               :challenge="my_challenge"
-                               :values_game.sync="values_game"
-                               :editable="!has_submitted">
-          </display-magic-board>
-          <div v-if="win_status == 0 && !has_submitted">
-            <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
-            <button v-on:click="submitMyAnswer">Submit</button>
-            <quantum-magic-square
-                :bus="bus"
-                :role="role"
-                :my_challenge="my_challenge"
-                :values_game.sync="values_game"
-            ></quantum-magic-square>
-          </div>
-          <div v-if="has_submitted">
-            <span v-if="win_status == 0">Waiting for all players to submit their answer...</span>
-            <div v-else>
-              <span v-if="win_status == 1">Great, you win! :-D</span>
-              <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
-              Here is the board that the other player submitted:
-              <display-magic-board
-                  :role="other_player_role"
-                  :challenge="other_player_challenge"
-                  :values_game="other_player_values_game"
-                  :editable="false">
+              <div v-else>Here is the board you submitted:</div>
+              <display-magic-board :role="role"
+                                   :challenge="my_challenge"
+                                   :values_game.sync="values_game"
+                                   :editable="!has_submitted">
               </display-magic-board>
-              <button v-on:click="restartGame">Restart game.</button>
+              <div v-if="win_status == 0 && !has_submitted">
+                <div v-if="!followRules">You do not respect the rules, please change your values. You should have an <span v-if="role == 'Alice'">even</span><span v-else>odd</span> number of -1. </div>
+                <q-btn color="primary" v-on:click="submitMyAnswer">Submit</q-btn>
+                <quantum-magic-square
+                    :bus="bus"
+                    :role="role"
+                    :my_challenge="my_challenge"
+                    :values_game.sync="values_game"
+                ></quantum-magic-square>
+              </div>
+              <div v-if="has_submitted">
+                <span v-if="win_status == 0">Waiting for all players to submit their answer...</span>
+                <div v-else>
+                  <span v-if="win_status == 1">Great, you win! :-D</span>
+                  <span v-if="win_status == -1">I'm sorry, you lose. :-(</span>
+                  Here is the board that the other player submitted:
+                  <display-magic-board
+                      :role="other_player_role"
+                      :challenge="other_player_challenge"
+                      :values_game="other_player_values_game"
+                      :editable="false">
+                  </display-magic-board>
+                  <q-btn color="primary" v-on:click="restartGame">Restart game.</q-btn>
+                </div>
+              </div>
+              <q-btn color="primary" v-on:click="stopPlaying">Stop Playing.</q-btn>
             </div>
           </div>
-          <button v-on:click="stopPlaying">Stop Playing.</button>
-        </div>
-      </div>
+        </q-page-container>
+      </q-layout>
     </div>
     
     <!-- #######################################################################
@@ -127,9 +147,9 @@
               {{ obs }}
             </option>
           </select>
-          <button @click="measure_observable">
+          <q-btn color="primary" @click="measure_observable">
             Measure the observable {{ sign_observable }}{{ observable_first_qubit }}{{ observable_second_qubit }}
-          </button>
+          </q-btn>
           <div>
             List of previous measurements:
             <ul>
@@ -144,13 +164,13 @@
           <table>
             <tr v-for="(e,i) in 3">
               <td v-for="(f,j) in 3">
-                <button @click="select_observable_in_square(i,j)"> {{ recommended_measurements[i][j] }} </button>
+                <q-btn color="primary" @click="select_observable_in_square(i,j)"> {{ recommended_measurements[i][j] }} </q-btn>
               </td>
             </tr>
           </table>
-          <button @click="apply_automatically_quantum_procedure">
+          <q-btn color="primary" @click="apply_automatically_quantum_procedure">
             Automatically apply the quantum strategy (/!\ Only when you are tired of manually doing it!)
-          </button>
+          </q-btn>
         </div>
       </div>
     </script>
@@ -163,7 +183,18 @@
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
     <!-- This does not provide interactive measurements:
          <script type="text/javascript" src="https://unpkg.com/quantum-circuit"></script> -->
-    <script src="http://davidbkemp.github.io/jsqubits/resources-1.0.0/js/jsqubits.js"></script>
+    <!-- <script src="http://davidbkemp.github.io/jsqubits/resources-1.0.0/js/jsqubits.js"></script> -->
+    <script src="./bundleJsqubit.js"></script>
+    <script type="text/javascript">
+      // Modules are not practical to load due to CORS restriction (no local file...)
+      // Using rollup to bundle it into a single file:
+      // First install rollup, for instance with nix:
+      // $ nix-shell -p nodePackages.rollup
+      // Then go in the "lib" directory and run:
+      // $ rollup jsqubits/lib/index.js --file bundleJsqubit.js --format iife --name bundleJsqubit
+      jsqubits = bundleJsqubit.jsqubits; // 
+      var bell_pair = jsqubits('|00>').hadamard(0).controlledX(0,1);
+    </script>
     <!-- To connect people in a peer2peer way, the easiest is to use
          WebRTC. The main problem is to find a way to discover people
          the first time (so called signalling). Then, there is some
@@ -185,9 +216,11 @@
     -->
     <script src="https://rtcmulticonnection.herokuapp.com/dist/RTCMultiConnection.min.js"></script>
     <script src="https://rtcmulticonnection.herokuapp.com/socket.io/socket.io.js"></script>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <!-- https://quasar.dev/start/umd -->
+    <script src="https://cdn.jsdelivr.net/npm/quasar@1.14.1/dist/quasar.ie.polyfills.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@^2.0.0/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/quasar@1.14.1/dist/quasar.umd.min.js"></script>
+    
     <script src="gui_vuejs.js"></script>
   </body>
 </html>

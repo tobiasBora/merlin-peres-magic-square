@@ -415,7 +415,7 @@ var app = new Vue({
         roomName: "roomQuantumMagicSquare",
         // List of 
         potentialPlayers: [ ],
-        message: "No important message so far",
+        message: "",
         // Messages types
         // ASK_PLAY
         listInvitations: [ ],

@@ -1,0 +1,15 @@
+* Magic Square Demo
+
+** Présentation
+   
+Here is a small project I started to:
+- provide a demonstration of the [[https://en.wikipedia.org/wiki/Quantum_pseudo-telepathy#The_Mermin%E2%80%93Peres_magic_square_game][Mermin–Peres Magic Square]] quantum game.
+- learn how to use the VueJs framework
+- learn how to do "server-less" interaction between multiple clients (we just use a signalling server from socket.io, and then clients connect in peer-to-peer). To that end, I use the [[https://github.com/muaz-khan/RTCMultiConnection][RTCMultiConnection]] library.
+
+WARNING: the game is still in beta and has not yet been tested a lot. Notably, I think there is a bug in the quantum measurements (certainly a stupid minus error) that I need to correct. But so far I had no more time to finish it. Feel free to point me to the issue.
+
+** Usage
+
+Download this project and open ~index.html~ on your browser at least two times, one per player. The players can be on different computers/networks. There is maybe an issue with local networks and MacOs that tries to be a bit too drastic in term of security, but this must be confirmed). Then follow the instructions.
+    
